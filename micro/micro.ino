@@ -31,6 +31,7 @@ Adafruit_Arcada arcada;
 #include "tensorflow/lite/experimental/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
+#include "wifi_provider.h"
 
 // Globals, used for compatibility with Arduino-style sketches.
 namespace {
@@ -41,6 +42,8 @@ TfLiteTensor* model_input = nullptr;
 FeatureProvider* feature_provider = nullptr;
 RecognizeCommands* recognizer = nullptr;
 int32_t previous_time = 0;
+
+WifiProvider* wifi_provider;
 
 // Create an area of memory to use for input, output, and intermediate arrays.
 // The size of this will depend on the model you're using, and may need to be
@@ -155,6 +158,11 @@ void setup() {
   recognizer = &static_recognizer;
 
   previous_time = 0;
+
+  static WifiProvider static_wifiprovider;
+  wifi_provider = &static_wifiprovider;
+  wifi_provider->Load();
+  wifi_provider->ConnectToWifi();
 }
 
 // The name of this function is important for Arduino compatibility.
