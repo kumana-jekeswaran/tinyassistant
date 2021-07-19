@@ -34,6 +34,8 @@ volatile int32_t g_latest_audio_timestamp = 0;
 volatile int16_t recording_buffer[DEFAULT_BUFFER_SIZE];
 
 volatile int max_audio = -32768, min_audio = 32768;
+
+void (*audio_capture_cb)() = nullptr;
 }  // namespace
 
 void TIMER_CALLBACK() {
@@ -51,6 +53,10 @@ void TIMER_CALLBACK() {
     CaptureSamples();
     max_audio = -32768, min_audio = 32768;
     audio_idx = 0;
+
+    if (audio_capture_cb != nullptr) {
+      (*audio_capture_cb) ();
+    }
   }
 
   sample -= 32676; // from 0-65535 to -32768 to 32768
@@ -85,6 +91,10 @@ TfLiteStatus InitAudioRecording(tflite::ErrorReporter* error_reporter) {
   }
 
   return kTfLiteOk;
+}
+
+void SetAudioCaptureCallback(void (*cb)()) {
+  audio_capture_cb = cb;
 }
 
 void CaptureSamples() {

@@ -1,3 +1,4 @@
+
 /* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +34,10 @@ Adafruit_Arcada arcada;
 #include "tensorflow/lite/version.h"
 #include "wifi_provider.h"
 
+#define STATE_SLEEP 0
+#define STATE_LISTEN 1
+#define LISTEN_DURATION_MS 10 * 1000
+
 // Globals, used for compatibility with Arduino-style sketches.
 namespace {
 tflite::ErrorReporter* error_reporter = nullptr;
@@ -45,6 +50,9 @@ int32_t previous_time = 0;
 
 WifiProvider* wifi_provider;
 
+int current_state = STATE_SLEEP;
+long listen_start_time = 0L;
+
 // Create an area of memory to use for input, output, and intermediate arrays.
 // The size of this will depend on the model you're using, and may need to be
 // determined by experimentation.
@@ -52,9 +60,7 @@ constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 }  // namespace
 
-// The name of this function is important for Arduino compatibility.
 void setup() {
-
   if (!arcada.arcadaBegin()) {
     while (1);
   }
@@ -151,7 +157,8 @@ void setup() {
   // that will provide the inputs to the neural network.
   // NOLINTNEXTLINE(runtime-global-variables)
   static FeatureProvider static_feature_provider(kFeatureElementCount,
-                                                 model_input->data.uint8);
+                                                 model_input->data.uint8,
+                                                 &audioCaptureCallback);
   feature_provider = &static_feature_provider;
 
   static RecognizeCommands static_recognizer(error_reporter);
@@ -165,29 +172,28 @@ void setup() {
   wifi_provider->ConnectToWifi();
 }
 
-// The name of this function is important for Arduino compatibility.
-void loop() {
+bool processForWakeupWord() {
   // Fetch the spectrogram for the current time.
   const int32_t current_time = LatestAudioTimestamp();
   int how_many_new_slices = 0;
   TfLiteStatus feature_status = feature_provider->PopulateFeatureData(
-      error_reporter, previous_time, current_time, &how_many_new_slices);
+          error_reporter, previous_time, current_time, &how_many_new_slices);
   if (feature_status != kTfLiteOk) {
     error_reporter->Report("Feature generation failed");
-    return;
+    return false;
   }
   previous_time = current_time;
   // If no new audio samples have been received since last time, don't bother
   // running the network model.
   if (how_many_new_slices == 0) {
-    return;
+    return false;
   }
 
   // Run the model on the spectrogram input and make sure it succeeds.
   TfLiteStatus invoke_status = interpreter->Invoke();
   if (invoke_status != kTfLiteOk) {
     error_reporter->Report("Invoke failed");
-    return;
+    return false;
   }
 
   // Obtain a pointer to the output tensor
@@ -197,14 +203,45 @@ void loop() {
   uint8_t score = 0;
   bool is_new_command = false;
   TfLiteStatus process_status = recognizer->ProcessLatestResults(
-      output, current_time, &found_command, &score, &is_new_command);
+          output, current_time, &found_command, &score, &is_new_command);
   if (process_status != kTfLiteOk) {
     error_reporter->Report("RecognizeCommands::ProcessLatestResults() failed");
-    return;
+    return false;
   }
   // Do something based on the recognized command. The default implementation
   // just prints to the error console, but you should replace this with your
   // own function for a real application.
   RespondToCommand(error_reporter, current_time, found_command, score,
                    is_new_command);
+
+  return is_new_command && found_command[0] == 'y';
+}
+
+void audioCaptureCallback() {
+  if (current_state == STATE_LISTEN) {
+    Serial.println("TODO: Send to server!!");
+  }
+}
+
+void loop() {
+  switch (current_state) {
+    case STATE_SLEEP: {
+      bool woke_up = processForWakeupWord();
+      if (woke_up) {
+        current_state = STATE_LISTEN;
+        listen_start_time = millis();
+        Serial.println("current_status: STATE_LISTEN");
+      }
+      break;
+    }
+    case STATE_LISTEN: {
+      long current_time = millis();
+      if (current_time - listen_start_time > LISTEN_DURATION_MS) {
+        Serial.println("listen timeout reached. time to switch state!");
+        current_state = STATE_SLEEP;
+        Serial.println("current_status: STATE_SLEEP");
+      }
+      break;
+    }
+  }
 }

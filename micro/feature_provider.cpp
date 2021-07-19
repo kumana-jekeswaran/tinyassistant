@@ -19,7 +19,7 @@ limitations under the License.
 #include "micro_features_micro_features_generator.h"
 #include "micro_features_micro_model_settings.h"
 
-FeatureProvider::FeatureProvider(int feature_size, uint8_t* feature_data)
+FeatureProvider::FeatureProvider(int feature_size, uint8_t* feature_data, void (*audio_capture_cb)())
     : feature_size_(feature_size),
       feature_data_(feature_data),
       is_first_run_(true) {
@@ -27,6 +27,7 @@ FeatureProvider::FeatureProvider(int feature_size, uint8_t* feature_data)
   for (int n = 0; n < feature_size_; ++n) {
     feature_data_[n] = 0;
   }
+  SetAudioCaptureCallback(audio_capture_cb);
 }
 
 FeatureProvider::~FeatureProvider() {}

@@ -53,7 +53,7 @@ void RespondToCommand(tflite::ErrorReporter* error_reporter,
       arcada.pixels.show();
     }
 
-    if (found_command[0] == 'n') {
+    /*if (found_command[0] == 'n') {
       last_command_time = current_time;
       ImageReturnCode stat = arcada.drawBMP((char *)"no.bmp", 0, 0);
       if (stat != IMAGE_SUCCESS) {
@@ -66,9 +66,9 @@ void RespondToCommand(tflite::ErrorReporter* error_reporter,
       arcada.WavPlayComplete("no.wav");
       arcada.pixels.fill(arcada.pixels.Color(50, 0, 0));
       arcada.pixels.show();
-    }
+    }*/
 
-    if (found_command[0] == 'u') {
+    /*if (found_command[0] == 'u') {
       last_command_time = current_time;
       last_command_time = current_time;
       ImageReturnCode stat = arcada.drawBMP((char *)"no.bmp", 0, 0);
@@ -81,7 +81,7 @@ void RespondToCommand(tflite::ErrorReporter* error_reporter,
       }
       arcada.pixels.fill(arcada.pixels.Color(10, 10, 10));
       arcada.pixels.show();
-    }
+    }*/
   }
 
   // If last_command_time is non-zero but was 1 seconds ago, zero it

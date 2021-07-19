@@ -43,4 +43,6 @@ TfLiteStatus GetAudioSamples(tflite::ErrorReporter* error_reporter,
 // your own platform-specific implementation.
 int32_t LatestAudioTimestamp();
 
+void SetAudioCaptureCallback(void (*callback)());
+
 #endif  // TENSORFLOW_LITE_EXPERIMENTAL_MICRO_EXAMPLES_MICRO_SPEECH_AUDIO_PROVIDER_H_
